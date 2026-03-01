@@ -31,10 +31,13 @@ $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 $verifyToken = generateToken();
 
 try {
-    $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, verify_token) VALUES (?, ?, ?)");
+    // En modo de pruebas, marcamos como verificado directamente (is_verified = 1)
+    $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, verify_token, is_verified) VALUES (?, ?, ?, 1)");
     $stmt->execute([$email, $passwordHash, $verifyToken]);
 
-    // Enviar email de verificación
+    // Opcional: Desactivar el envío de email real en pruebas si se desea
+    // $sent = sendAuthEmail($email, $subject, $message);
+    $sent = false; // Simulado para que no de error
     $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
     $host = $_SERVER['HTTP_HOST'];
     $verifyUrl = "$protocol://$host/php/verify.php?token=$verifyToken";
