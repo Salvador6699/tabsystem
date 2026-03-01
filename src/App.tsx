@@ -10,8 +10,6 @@ import { UserGuide } from "./components/UserGuide";
 import { FloatingButton, BottomNav, DarkModeToggle } from "./components/Navigation";
 import { LoginView } from "./components/auth/LoginView";
 import { RegisterView } from "./components/auth/RegisterView";
-import { RecoverView } from "./components/auth/RecoverView";
-import { ResetView } from "./components/auth/ResetView";
 import { WorkEntry } from "./types";
 import { generateId } from "./lib/utils";
 import { useDarkMode } from "./hooks/useDarkMode";
@@ -50,24 +48,13 @@ export default function App() {
   } = useAppContext();
 
   const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
-  const [authView, setAuthView] = useState<"login" | "register" | "recover" | "reset">("login");
-  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [authView, setAuthView] = useState<"login" | "register">("login");
 
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);
   const [displayEntries, setDisplayEntries] = useState<WorkEntry[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isDark, toggle: toggleDark } = useDarkMode();
-
-  // Detectar token de reset en la URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.hash.split('?')[1]);
-    const token = params.get('token');
-    if (token) {
-      setResetToken(token);
-      setAuthView("reset");
-    }
-  }, []);
 
   useEffect(() => {
     setDisplayEntries(workEntries);
@@ -109,11 +96,9 @@ export default function App() {
 
   // Vistas de Autenticación
   if (!isAuthenticated) {
-    if (authView === "login") return <LoginView onSwitchToRegister={() => setAuthView("register")} onSwitchToRecover={() => setAuthView("recover")} />;
+    if (authView === "login") return <LoginView onSwitchToRegister={() => setAuthView("register")} />;
     if (authView === "register") return <RegisterView onSwitchToLogin={() => setAuthView("login")} />;
-    if (authView === "recover") return <RecoverView onBack={() => setAuthView("login")} />;
-    if (authView === "reset" && resetToken) return <ResetView token={resetToken} onBack={() => setAuthView("login")} />;
-    return <LoginView onSwitchToRegister={() => setAuthView("register")} onSwitchToRecover={() => setAuthView("recover")} />;
+    return <LoginView onSwitchToRegister={() => setAuthView("register")} />;
   }
 
   return (

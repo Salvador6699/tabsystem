@@ -29,10 +29,6 @@ try {
         jsonResponse(['error' => 'Credenciales incorrectas'], 401);
     }
 
-    if (!$user['is_verified']) {
-        jsonResponse(['error' => 'La cuenta no ha sido verificada. Revisa tu email.'], 403);
-    }
-
     // Iniciar sesión
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user_email'] = $user['email'];

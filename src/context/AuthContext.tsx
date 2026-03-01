@@ -11,8 +11,6 @@ type AuthContextType = {
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
     register: (email: string, password: string) => Promise<{ message: string }>;
-    recoverPassword: (email: string) => Promise<{ message: string }>;
-    resetPassword: (token: string, password: string) => Promise<{ message: string }>;
     logout: () => Promise<void>;
 };
 
@@ -34,9 +32,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const checkSession = async () => {
             try {
-                const res = await fetch(`${API_BASE}/login.php`, { method: "POST" }); // Un login vacío o check_auth.php
-                // Para simplificar, asumimos que el usuario sigue en localStorage si no cerramos sesión,
-                // pero lo ideal es un check_auth.php en el servidor.
                 const storedUser = localStorage.getItem("tabsystem_user");
                 if (storedUser) {
                     setUser(JSON.parse(storedUser));
@@ -76,30 +71,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return data;
     };
 
-    const recoverPassword = async (email: string) => {
-        const res = await fetch(`${API_BASE}/recover.php`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }),
-            credentials: "include",
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Error al solicitar recuperación");
-        return data;
-    };
-
-    const resetPassword = async (token: string, password: string) => {
-        const res = await fetch(`${API_BASE}/reset.php`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ token, password }),
-            credentials: "include",
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Error al restablecer contraseña");
-        return data;
-    };
-
     const logout = async () => {
         await fetch(`${API_BASE}/logout.php`, { method: "POST", credentials: "include" });
         setUser(null);
@@ -114,8 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 isLoading,
                 login,
                 register,
-                recoverPassword,
-                resetPassword,
                 logout,
             }}
         >

@@ -1,7 +1,7 @@
 <?php
 /**
  * register.php
- * Registra un nuevo usuario y envía email de verificación.
+ * Registra un nuevo usuario con acceso directo (sin verificación).
  */
 
 require_once 'auth_utils.php';
@@ -28,34 +28,15 @@ if ($stmt->fetch()) {
 }
 
 $passwordHash = password_hash($password, PASSWORD_BCRYPT);
-$verifyToken = generateToken();
 
 try {
-    // En modo de pruebas, marcamos como verificado directamente (is_verified = 1)
-    $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, verify_token, is_verified) VALUES (?, ?, ?, 1)");
-    $stmt->execute([$email, $passwordHash, $verifyToken]);
-
-    // Opcional: Desactivar el envío de email real en pruebas si se desea
-    // $sent = sendAuthEmail($email, $subject, $message);
-    $sent = false; // Simulado para que no de error
-    $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http";
-    $host = $_SERVER['HTTP_HOST'];
-    $verifyUrl = "$protocol://$host/php/verify.php?token=$verifyToken";
-
-    $subject = "Verifica tu cuenta en TabSystem";
-    $message = "
-        <h2>¡Bienvenido a TabSystem!</h2>
-        <p>Haz clic en el siguiente enlace para activar tu cuenta:</p>
-        <p><a href='$verifyUrl'>$verifyUrl</a></p>
-        <p>Si no has creado esta cuenta, puedes ignorar este correo.</p>
-    ";
-
-    $sent = sendAuthEmail($email, $subject, $message);
+    // Marcamos como verificado directamente (is_verified = 1)
+    $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, is_verified) VALUES (?, ?, 1)");
+    $stmt->execute([$email, $passwordHash]);
 
     jsonResponse([
         'success' => true,
-        'message' => 'Registro completado. Revisa tu email para activar la cuenta.',
-        'email_sent' => $sent // Útil para depurar en hosting
+        'message' => 'Registro completado con éxito. Ya puedes iniciar sesión.'
     ]);
 
 }
