@@ -25,12 +25,16 @@ async function parsePhpError(res: Response): Promise<string> {
   }
 }
 
+import { useAuth } from "./AuthContext";
+
 type AppContextType = {
   storageConfig: StorageConfig;
   updateStorageConfig: (config: StorageConfig) => void;
   isConnecting: boolean;
   connectionError: string | null;
   isLoading: boolean;
+  isSyncing: boolean;
+  isInitializing: boolean;
 
   workEntries: WorkEntry[];
   setWorkEntries: React.Dispatch<React.SetStateAction<WorkEntry[]>>;
@@ -59,7 +63,10 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [storageConfig, setStorageConfig] = useState<StorageConfig>(() =>
     getFromStorage("storageConfig", { type: "local" })
   );
+  const { isAuthenticated } = useAuth();
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -70,8 +77,9 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [multipliers, setMultipliers] = useState<Multiplier[]>(() => getFromStorage("multipliers", []));
   const [globalMeasurements, setGlobalMeasurements] = useState<GlobalMeasurement[]>(() => getFromStorage("globalMeasurements", []));
 
+  const hasLocalData = workEntries.length > 0 || brickTypes.length > DEFAULT_BRICK_TYPES.length || periods.length > 0;
+
   // ─── PERSISTENCIA LOCAL AUTOMÁTICA ───────────────────────────────────────────
-  // Siempre guardamos en LocalStorage cuando cambia algo, pase lo que pase.
   useEffect(() => {
     saveToStorage("workEntries", workEntries);
     saveToStorage("brickTypes", brickTypes);
@@ -80,11 +88,63 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
     saveToStorage("globalMeasurements", globalMeasurements);
   }, [workEntries, brickTypes, periods, multipliers, globalMeasurements]);
 
-  useEffect(() => {
-    setIsLoading(false); // Una vez cargado de localStorage, ya no estamos cargando
-  }, []);
+  // ─── SINCRONIZACIÓN AUTOMÁTICA ──────────────────────────────────────────────
 
-  // ─── SINCRONIZACIÓN MANUAL CON LA NUBE ───────────────────────────────────────
+  const performSync = useCallback(async (isInitial = false) => {
+    if (!isAuthenticated) return;
+
+    if (isInitial) setIsInitializing(true);
+    else setIsSyncing(true);
+
+    try {
+      const payload = { workEntries, brickTypes, periods, multipliers, globalMeasurements };
+      const res = await fetch(`${API_BASE}/save_all.php`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+        credentials: "include",
+      });
+
+      if (!res.ok) throw new Error("Sin conexión");
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+
+      if (isInitial && hasLocalData) {
+        alert("✅ Datos actualizados en la base de datos");
+      }
+      setConnectionError(null);
+    } catch (err: any) {
+      setConnectionError(err.message);
+      if (isInitial && hasLocalData) {
+        alert("ℹ️ Sin conexión a internet. Los datos se guardarán en local hasta tener conexión.");
+      }
+    } finally {
+      setIsInitializing(false);
+      setIsSyncing(false);
+      setIsLoading(false);
+    }
+  }, [isAuthenticated, workEntries, brickTypes, periods, multipliers, globalMeasurements, hasLocalData]);
+
+  // Efecto de inicialización
+  useEffect(() => {
+    if (isAuthenticated) {
+      performSync(true);
+    } else {
+      setIsLoading(false);
+      setIsInitializing(false);
+    }
+  }, [isAuthenticated]);
+
+  // Auto-save a la nube tras cambios (debounced)
+  useEffect(() => {
+    if (isLoading || isInitializing || !isAuthenticated) return;
+
+    const timer = setTimeout(() => {
+      performSync(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [workEntries, brickTypes, periods, multipliers, globalMeasurements, isAuthenticated, isLoading, isInitializing, performSync]);
 
   const syncToDatabase = useCallback(async () => {
     setIsConnecting(true);
@@ -150,6 +210,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
         isConnecting,
         connectionError,
         isLoading,
+        isSyncing,
+        isInitializing,
         workEntries,
         setWorkEntries,
         brickTypes,

@@ -41,6 +41,7 @@ export default function App() {
     storageConfig,
     updateStorageConfig,
     isConnecting,
+    isInitializing,
     connectionError,
     isLoading,
     syncToDatabase,
@@ -83,12 +84,14 @@ export default function App() {
     }
   };
 
-  if (authLoading || isLoading) {
+  if (authLoading || isLoading || isInitializing) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background text-center p-6">
         <div className="space-y-4">
           <Blocks className="w-12 h-12 text-primary animate-pulse mx-auto" />
-          <p className="text-muted-foreground animate-pulse font-medium">Cargando TabSystem...</p>
+          <p className="text-muted-foreground animate-pulse font-medium">
+            {isInitializing ? "Comprobando y sincronizando datos..." : "Cargando TabSystem..."}
+          </p>
         </div>
       </div>
     );
