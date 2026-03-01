@@ -13,12 +13,30 @@ define('DB_USER', 'myplantrabb3');
 define('DB_PASS', 'Ganbaru@6699');
 define('DB_CHARSET', 'utf8mb4');
 
+// Configuración de Correo (SMTP)
+define('SMTP_HOST', 'smtp.plantrabajo.com');
+define('SMTP_USER', 'info@plantrabajo.com'); // Cambiar por la cuenta real
+define('SMTP_PASS', 'tu-contraseña'); // Cambiar por la contraseña real
+define('SMTP_PORT', 465); // SSL/TLS: 465, STARTTLS: 587
+define('SMTP_SECURE', 'ssl'); // 'ssl' o 'tls'
+define('FROM_EMAIL', 'info@plantrabajo.com');
+define('FROM_NAME', 'TabSystem Auth');
+
+// Configuración de Sesiones / Seguridad
+define('AUTH_SECRET', 'cambia-esto-por-algo-seguro-y-largo'); // Para firmar tokens si fuera necesario
+session_start([
+    'cookie_httponly' => true,
+    'cookie_secure' => false, // Cambiar a true si usas HTTPS
+    'cookie_samesite' => 'Lax',
+]);
+
 /*  // Configuración local opcional (XAMPP) define('DB_HOST', 'localhost'); define('DB_NAME', 'tabsystem'); define('DB_USER', 'ganbaru'); define('DB_PASS', 'Ganbaru@6699'); define('DB_CHARSET', 'utf8mb4'); */
 
 // Cabeceras CORS y JSON
-header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Origin: http://localhost:5173'); // Ajustar a tu dominio de producción si es necesario
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Headers: Content-Type, Authorization');
+header('Access-Control-Allow-Credentials: true');
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

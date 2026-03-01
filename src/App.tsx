@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAppContext } from "./context/AppContext";
+import { useAuth } from "./context/AuthContext";
 import { Dashboard } from "./components/Dashboard";
 import { WorkEntryForm } from "./components/WorkEntryForm";
 import { WorkHistory } from "./components/WorkHistory";
@@ -7,10 +8,14 @@ import { GlobalMeasurements } from "./components/GlobalMeasurements";
 import { Settings } from "./components/Settings";
 import { UserGuide } from "./components/UserGuide";
 import { FloatingButton, BottomNav, DarkModeToggle } from "./components/Navigation";
+import { LoginView } from "./components/auth/LoginView";
+import { RegisterView } from "./components/auth/RegisterView";
+import { RecoverView } from "./components/auth/RecoverView";
+import { ResetView } from "./components/auth/ResetView";
 import { WorkEntry } from "./types";
 import { generateId } from "./lib/utils";
 import { useDarkMode } from "./hooks/useDarkMode";
-import { LayoutDashboard, History, Ruler, Settings as SettingsIcon, BookOpen, Blocks, Menu, X } from "lucide-react";
+import { LayoutDashboard, History, Ruler, Settings as SettingsIcon, BookOpen, Blocks, Menu, X, LogOut } from "lucide-react";
 
 type View = "dashboard" | "history" | "global-measurements" | "settings" | "add-entry" | "edit-entry" | "user-guide";
 
@@ -44,11 +49,25 @@ export default function App() {
     syncFromDatabase,
   } = useAppContext();
 
+  const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const [authView, setAuthView] = useState<"login" | "register" | "recover" | "reset">("login");
+  const [resetToken, setResetToken] = useState<string | null>(null);
+
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [editingEntry, setEditingEntry] = useState<WorkEntry | null>(null);
   const [displayEntries, setDisplayEntries] = useState<WorkEntry[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { isDark, toggle: toggleDark } = useDarkMode();
+
+  // Detectar token de reset en la URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.hash.split('?')[1]);
+    const token = params.get('token');
+    if (token) {
+      setResetToken(token);
+      setAuthView("reset");
+    }
+  }, []);
 
   useEffect(() => {
     setDisplayEntries(workEntries);
@@ -77,12 +96,24 @@ export default function App() {
     }
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-background">
-        <p className="text-muted-foreground">Cargando datos...</p>
+      <div className="flex justify-center items-center min-h-screen bg-background text-center p-6">
+        <div className="space-y-4">
+          <Blocks className="w-12 h-12 text-primary animate-pulse mx-auto" />
+          <p className="text-muted-foreground animate-pulse font-medium">Cargando TabSystem...</p>
+        </div>
       </div>
     );
+  }
+
+  // Vistas de Autenticación
+  if (!isAuthenticated) {
+    if (authView === "login") return <LoginView onSwitchToRegister={() => setAuthView("register")} onSwitchToRecover={() => setAuthView("recover")} />;
+    if (authView === "register") return <RegisterView onSwitchToLogin={() => setAuthView("login")} />;
+    if (authView === "recover") return <RecoverView onBack={() => setAuthView("login")} />;
+    if (authView === "reset" && resetToken) return <ResetView token={resetToken} onBack={() => setAuthView("login")} />;
+    return <LoginView onSwitchToRegister={() => setAuthView("register")} onSwitchToRecover={() => setAuthView("recover")} />;
   }
 
   return (
@@ -100,9 +131,9 @@ export default function App() {
               <button
                 onClick={() => setCurrentView("user-guide")}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                title="Guía de Usuario"
               >
                 <BookOpen className="w-4 h-4" />
-                <span className="hidden sm:inline">Guía</span>
               </button>
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -110,17 +141,25 @@ export default function App() {
                   <button
                     key={item.id}
                     onClick={() => setCurrentView(item.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      currentView === item.id
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:text-foreground hover:bg-accent"
-                    }`}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${currentView === item.id
+                      ? "bg-primary/10 text-primary"
+                      : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      }`}
                   >
                     <Icon className="w-4 h-4" />
                     <span className="hidden sm:inline">{item.label}</span>
                   </button>
                 );
               })}
+              <div className="w-px h-6 bg-border mx-2" />
+              <button
+                onClick={() => { if (confirm("¿Cerrar sesión?")) logout(); }}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+                title="Cerrar Sesión"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden lg:inline">Salir</span>
+              </button>
             </div>
           </div>
         </div>
@@ -160,6 +199,15 @@ export default function App() {
               <BookOpen className="w-5 h-5" />
               Guía de Usuario
             </button>
+            <div className="pt-2 mt-2 border-t border-border">
+              <button
+                onClick={() => { if (confirm("¿Cerrar sesión?")) { logout(); setMobileMenuOpen(false); } }}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-destructive hover:bg-destructive/10"
+              >
+                <LogOut className="w-5 h-5" />
+                Cerrar Sesión
+              </button>
+            </div>
           </div>
         )}
       </header>

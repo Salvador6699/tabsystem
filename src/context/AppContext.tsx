@@ -55,7 +55,7 @@ export const useAppContext = () => {
   return ctx;
 };
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [storageConfig, setStorageConfig] = useState<StorageConfig>(() =>
     getFromStorage("storageConfig", { type: "local" })
   );
@@ -95,6 +95,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
+        credentials: "include",
       });
       if (!res.ok) throw new Error(await parsePhpError(res));
       const data = await res.json();
@@ -114,7 +115,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setIsConnecting(true);
     setConnectionError(null);
     try {
-      const res = await fetch(`${API_BASE}/get_all.php`, { method: "GET" });
+      const res = await fetch(`${API_BASE}/get_all.php`, { method: "GET", credentials: "include" });
       if (!res.ok) throw new Error(await parsePhpError(res));
       const data = await res.json();
 
