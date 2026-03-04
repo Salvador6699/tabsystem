@@ -12,6 +12,12 @@ export type Multiplier = {
   description?: string;
 };
 
+export type Supplement = {
+  id: string;
+  name: string;
+  price: number;
+};
+
 export type Period = {
   id: string;
   name: string;

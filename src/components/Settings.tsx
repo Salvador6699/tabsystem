@@ -5,6 +5,7 @@ import {
   Multiplier,
   WorkEntry,
   GlobalMeasurement,
+  Supplement,
   StorageConfig,
 } from "../types";
 import { generateId, formatCurrency } from "../lib/utils";
@@ -17,6 +18,8 @@ type Props = {
   setPeriods: (v: Period[] | ((prev: Period[]) => Period[])) => void;
   multipliers: Multiplier[];
   setMultipliers: (v: Multiplier[] | ((prev: Multiplier[]) => Multiplier[])) => void;
+  supplements: Supplement[];
+  setSupplements: (v: Supplement[] | ((prev: Supplement[]) => Supplement[])) => void;
   workEntries: WorkEntry[];
   setWorkEntries: (v: WorkEntry[] | ((prev: WorkEntry[]) => WorkEntry[])) => void;
   globalMeasurements: GlobalMeasurement[];
@@ -36,6 +39,8 @@ export const Settings: React.FC<Props> = ({
   setPeriods,
   multipliers,
   setMultipliers,
+  supplements,
+  setSupplements,
   workEntries,
   setWorkEntries,
   globalMeasurements,
@@ -48,7 +53,7 @@ export const Settings: React.FC<Props> = ({
   syncFromDatabase,
 }) => {
 
-  const [tab, setTab] = useState<"bricks" | "periods" | "multipliers" | "data">("bricks");
+  const [tab, setTab] = useState<"bricks" | "periods" | "multipliers" | "supplements" | "data">("bricks");
 
   // Brick type form
   const [newBrickName, setNewBrickName] = useState("");
@@ -66,6 +71,10 @@ export const Settings: React.FC<Props> = ({
   const [newMultName, setNewMultName] = useState("");
   const [newMultValue, setNewMultValue] = useState("");
   const [newMultDesc, setNewMultDesc] = useState("");
+
+  // Supplement form
+  const [newSupName, setNewSupName] = useState("");
+  const [newSupPrice, setNewSupPrice] = useState("");
 
   const addBrick = () => {
     if (!newBrickName || !newBrickPrice) {
@@ -87,6 +96,21 @@ export const Settings: React.FC<Props> = ({
     setNewBrickName("");
     setNewBrickPrice("");
     setNewBrickType("regular");
+  };
+
+  const addSupplement = () => {
+    if (!newSupName || !newSupPrice) {
+      alert("El nombre y el precio del suplemento son obligatorios");
+      return;
+    }
+    const sup: Supplement = {
+      id: generateId(),
+      name: newSupName,
+      price: parseFloat(newSupPrice),
+    };
+    setSupplements((prev) => [...prev, sup]);
+    setNewSupName("");
+    setNewSupPrice("");
   };
 
   const startEditBrick = (b: BrickType) => {
@@ -175,10 +199,11 @@ export const Settings: React.FC<Props> = ({
   };
 
   const tabs = [
-    { id: "bricks", label: "Gestión de Tipos de Ladrillo" },
-    { id: "periods", label: "Gestión de Períodos" },
-    { id: "multipliers", label: "Gestión de Multiplicadores" },
-    { id: "data", label: "Base de Datos y Backup" },
+    { id: "bricks", label: "Tipos de Ladrillo" },
+    { id: "periods", label: "Períodos" },
+    { id: "multipliers", label: "Multiplicadores" },
+    { id: "supplements", label: "Suplementos" },
+    { id: "data", label: "Sincronización" },
   ] as const;
 
   return (
@@ -446,6 +471,73 @@ export const Settings: React.FC<Props> = ({
           </div>
         </div>
       )}
+
+      {/* Suplementos */}
+      {tab === "supplements" && (
+        <div className="space-y-4">
+          <div className="bg-card border border-border rounded-xl p-5 space-y-4">
+            <h3 className="font-semibold text-foreground">Gestión de Suplementos</h3>
+            <p className="text-xs text-muted-foreground">
+              Añade extras fijos que se multiplicarán por los metros cuadrados finales (limpieza, ayuda, etc.).
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input
+                value={newSupName}
+                onChange={(e) => setNewSupName(e.target.value)}
+                placeholder="Nombre del suplemento (ej: Limpieza)"
+                className="border border-border rounded-lg px-3 py-2 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <input
+                type="number"
+                step="0.01"
+                value={newSupPrice}
+                onChange={(e) => setNewSupPrice(e.target.value)}
+                placeholder="Precio por m² (ej: 0.50)"
+                className="border border-border rounded-lg px-3 py-2 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <button
+              onClick={addSupplement}
+              className="flex items-center gap-2 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90"
+            >
+              <Plus className="w-4 h-4" />
+              Añadir Suplemento
+            </button>
+          </div>
+
+          <div className="bg-card border border-border rounded-xl overflow-hidden">
+            {supplements.length === 0 ? (
+              <p className="text-center py-8 text-muted-foreground text-sm">
+                No hay suplementos configurados
+              </p>
+            ) : (
+              supplements.map((s) => (
+                <div
+                  key={s.id}
+                  className="flex items-center justify-between px-4 py-3 border-b last:border-0 border-border"
+                >
+                  <div>
+                    <p className="font-medium text-sm">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(s.price)}/m²
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (confirm("¿Eliminar este suplemento?"))
+                        setSupplements((prev) => prev.filter((x) => x.id !== s.id));
+                    }}
+                    className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Gestión de Datos y Base de Datos */}
       {tab === "data" && (
         <div className="space-y-6">

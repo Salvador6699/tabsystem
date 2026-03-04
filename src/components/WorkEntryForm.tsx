@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { BrickType, Multiplier, WorkEntry } from "../types";
+import { BrickType, Multiplier, WorkEntry, Supplement } from "../types";
 import { generateId } from "../lib/utils";
 
 type Props = {
   brickTypes: BrickType[];
   multipliers: Multiplier[];
+  supplements: Supplement[];
   initialData?: WorkEntry;
   onSave: (entry: WorkEntry) => void;
   onCancel: () => void;
@@ -13,6 +14,7 @@ type Props = {
 export const WorkEntryForm: React.FC<Props> = ({
   brickTypes,
   multipliers,
+  supplements,
   initialData,
   onSave,
   onCancel,
@@ -22,15 +24,18 @@ export const WorkEntryForm: React.FC<Props> = ({
   const [date, setDate] = useState(initialData?.date || today);
   const [brickTypeId, setBrickTypeId] = useState(initialData?.brickTypeId || brickTypes[0]?.id || "");
   const [selectedMultiplierIds, setSelectedMultiplierIds] = useState<string[]>(
-    initialData?.supplementIds || []
+    initialData?.supplementIds?.filter(id => multipliers.some(m => m.id === id)) || []
+  );
+  const [selectedSupplementIds, setSelectedSupplementIds] = useState<string[]>(
+    initialData?.supplementIds?.filter(id => supplements.some(s => s.id === id)) || []
   );
   const [linearMeters, setLinearMeters] = useState(
-    initialData?.linearMeters?.toString() || ""
+    initialData?.linearMeters?.toFixed(2) || ""
   );
-  const [height, setHeight] = useState(initialData?.height?.toString() || "");
+  const [height, setHeight] = useState(initialData?.height?.toFixed(2) || "");
   const [quantity, setQuantity] = useState(initialData?.quantity?.toString() || "");
   const [pricePerUnit, setPricePerUnit] = useState(
-    initialData?.pricePerUnit?.toString() || ""
+    initialData?.pricePerUnit?.toFixed(2) || ""
   );
   const [description, setDescription] = useState(initialData?.description || "");
   const [periodId, setPeriodId] = useState(initialData?.periodId || "");
@@ -41,15 +46,23 @@ export const WorkEntryForm: React.FC<Props> = ({
   const calcSquareMeters = () => {
     const lm = parseFloat(linearMeters) || 0;
     const h = parseFloat(height) || 0;
-    return lm * h;
+
+    // Multiplicadores aplicados a los metros lineales para obtener metros cuadrados "finales"
+    const totalMultiplier = selectedMultiplierIds.reduce((acc, id) => {
+      const mult = multipliers.find((m) => m.id === id);
+      return mult ? acc * mult.value : acc;
+    }, 1);
+
+    return lm * h * totalMultiplier;
   };
 
   const calcEarnings = () => {
     if (!selectedBrick) return { base: 0, supplement: 0, total: 0 };
 
     let base = 0;
+    let m2 = 0;
     if (isRegular) {
-      const m2 = calcSquareMeters();
+      m2 = calcSquareMeters();
       base = m2 * selectedBrick.pricePerSquareMeter;
     } else {
       const qty = parseFloat(quantity) || 0;
@@ -57,15 +70,15 @@ export const WorkEntryForm: React.FC<Props> = ({
       base = qty * price;
     }
 
-    const supplementMultiplier = selectedMultiplierIds.reduce((acc, id) => {
-      const mult = multipliers.find((m) => m.id === id);
-      return mult ? acc * mult.value : acc;
-    }, 1);
+    // Suplementos: se multiplican por los metros cuadrados finales
+    const supplementTotal = isRegular ? selectedSupplementIds.reduce((acc, id) => {
+      const sup = supplements.find((s) => s.id === id);
+      return sup ? acc + (m2 * sup.price) : acc;
+    }, 0) : 0;
 
-    const total = base * supplementMultiplier;
-    const supplement = total - base;
+    const total = base + supplementTotal;
 
-    return { base, supplement, total };
+    return { base, supplement: supplementTotal, total };
   };
 
   const { base, supplement, total } = calcEarnings();
@@ -75,11 +88,14 @@ export const WorkEntryForm: React.FC<Props> = ({
     e.preventDefault();
     if (!brickTypeId) return;
 
+    // Combinar IDs de multiplicadores y suplementos
+    const allSupplementIds = [...selectedMultiplierIds, ...selectedSupplementIds];
+
     const entry: WorkEntry = {
       id: initialData?.id || generateId(),
       date,
       brickTypeId,
-      supplementIds: selectedMultiplierIds.length > 0 ? selectedMultiplierIds : undefined,
+      supplementIds: allSupplementIds.length > 0 ? allSupplementIds : undefined,
       linearMeters: isRegular ? parseFloat(linearMeters) || 0 : undefined,
       height: isRegular ? parseFloat(height) || 0 : undefined,
       squareMeters,
@@ -97,6 +113,12 @@ export const WorkEntryForm: React.FC<Props> = ({
 
   const toggleMultiplier = (id: string) => {
     setSelectedMultiplierIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSupplement = (id: string) => {
+    setSelectedSupplementIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
   };
@@ -208,28 +230,54 @@ export const WorkEntryForm: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Multiplicadores */}
-        {multipliers.length > 0 && (
-          <div>
-            <label className="block text-sm font-medium mb-2 text-foreground">
-              Multiplicadores
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {multipliers.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => toggleMultiplier(m.id)}
-                  className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                    selectedMultiplierIds.includes(m.id)
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border text-muted-foreground hover:border-primary"
-                  }`}
-                >
-                  {m.name} (×{m.value})
-                </button>
-              ))}
-            </div>
+        {/* Multiplicadores y Suplementos */}
+        {isRegular && (
+          <div className="space-y-4">
+            {multipliers.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Multiplicadores de dificultad (afectan m²)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {multipliers.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => toggleMultiplier(m.id)}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${selectedMultiplierIds.includes(m.id)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border text-muted-foreground hover:border-primary"
+                        }`}
+                    >
+                      {m.name} (×{m.value.toFixed(2)})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {supplements.length > 0 && (
+              <div>
+                <label className="block text-sm font-medium mb-2 text-foreground">
+                  Suplementos Extra (por m²)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {supplements.map((s) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => toggleSupplement(s.id)}
+                      className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${selectedSupplementIds.includes(s.id)
+                          ? "bg-secondary text-secondary-foreground border-secondary"
+                          : "border-border text-muted-foreground hover:border-secondary"
+                        }`}
+                    >
+                      {s.name} (+{s.price.toFixed(2)}€/m²)
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

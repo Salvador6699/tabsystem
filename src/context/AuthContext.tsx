@@ -22,11 +22,39 @@ export const useAuth = () => {
     return ctx;
 };
 
-const API_BASE = `${window.location.origin}/php`;
+const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const AUTH_CREDENTIALS = "plantr753:zGTk9J8N";
+const AUTH_URL = `http://${AUTH_CREDENTIALS}@www.plantrabajo.com.mialias.net/`;
+
+// URL limpia sin credenciales
+const API_BASE = isLocal
+    ? `${window.location.origin}/php`
+    : `http://www.plantrabajo.com.mialias.net/php`;
+
+// Generar cabeceras de autenticación básica para CDMon
+const getAuthHeaders = (): Record<string, string> => {
+    if (isLocal) return {};
+    return {
+        "Authorization": `Basic ${btoa(AUTH_CREDENTIALS)}`
+    };
+};
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Forzar el uso de la URL base en producción mediante redirección única
+    useEffect(() => {
+        if (isLocal) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasAuthParam = urlParams.get("auth") === "1";
+
+        // Redirigimos para asegurar que el parámetro esté presente
+        if (!hasAuthParam) {
+            window.location.href = `${AUTH_URL}?auth=1`;
+        }
+    }, []);
 
     // Verificar sesión al cargar
     useEffect(() => {
@@ -48,7 +76,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password: string) => {
         const res = await fetch(`${API_BASE}/login.php`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders()
+            },
             body: JSON.stringify({ email, password }),
             credentials: "include",
         });
@@ -62,7 +93,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const register = async (email: string, password: string) => {
         const res = await fetch(`${API_BASE}/register.php`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...getAuthHeaders()
+            },
             body: JSON.stringify({ email, password }),
             credentials: "include",
         });
@@ -72,9 +106,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = async () => {
-        await fetch(`${API_BASE}/logout.php`, { method: "POST", credentials: "include" });
+        try {
+            await fetch(`${API_BASE}/logout.php`, {
+                method: "POST",
+                headers: getAuthHeaders(),
+                credentials: "include"
+            });
+        } catch (e) {
+            console.error("Logout fetch failed", e);
+        }
         setUser(null);
         localStorage.removeItem("tabsystem_user");
+
+        // Al salir, redirigimos de nuevo a la URL base con credenciales para que CDMon no las pida al volver a entrar
+        if (isLocal) {
+            window.location.reload();
+        } else {
+            window.location.href = `${AUTH_URL}?auth=1`;
+        }
     };
 
     return (

@@ -33,6 +33,7 @@ try {
     $pdo->prepare("DELETE FROM multipliers WHERE user_id = ?")->execute([$userId]);
     $pdo->prepare("DELETE FROM periods WHERE user_id = ?")->execute([$userId]);
     $pdo->prepare("DELETE FROM brick_types WHERE user_id = ?")->execute([$userId]);
+    $pdo->prepare("DELETE FROM supplements WHERE user_id = ?")->execute([$userId]);
 
     // 2. Insertar Ladrillos
     if (!empty($body['brickTypes'])) {
@@ -85,6 +86,14 @@ try {
             foreach ($gm['records'] as $rec) {
                 $stmtRec->execute([$gm['id'], $rec['brickTypeId'], $rec['squareMeters'], $rec['earnings']]);
             }
+        }
+    }
+
+    // 7. Insertar Suplementos
+    if (!empty($body['supplements'])) {
+        $stmt = $pdo->prepare("INSERT INTO supplements (id, name, price, user_id) VALUES (?, ?, ?, ?)");
+        foreach ($body['supplements'] as $s) {
+            $stmt->execute([$s['id'], $s['name'], $s['price'], $userId]);
         }
     }
 

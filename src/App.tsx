@@ -36,6 +36,8 @@ export default function App() {
     setPeriods,
     multipliers,
     setMultipliers,
+    supplements,
+    setSupplements,
     globalMeasurements,
     setGlobalMeasurements,
     storageConfig,
@@ -229,6 +231,7 @@ export default function App() {
             <WorkEntryForm
               brickTypes={brickTypes}
               multipliers={multipliers}
+              supplements={supplements}
               onSave={handleAddEntry}
               onCancel={() => setCurrentView("dashboard")}
             />
@@ -240,6 +243,7 @@ export default function App() {
             <WorkEntryForm
               brickTypes={brickTypes}
               multipliers={multipliers}
+              supplements={supplements}
               initialData={editingEntry}
               onSave={handleUpdateEntry}
               onCancel={() => { setEditingEntry(null); setCurrentView("dashboard"); }}
@@ -277,6 +281,8 @@ export default function App() {
             setPeriods={setPeriods}
             multipliers={multipliers}
             setMultipliers={setMultipliers}
+            supplements={supplements}
+            setSupplements={setSupplements}
             workEntries={workEntries}
             setWorkEntries={setWorkEntries}
             globalMeasurements={globalMeasurements}
