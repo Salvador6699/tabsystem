@@ -70,12 +70,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const checkSession = async () => {
             try {
+                // Intentamos verificar con el servidor primero para estar seguros
+                const res = await fetch(`${API_BASE}/verify_session.php`, {
+                    headers: getAuthHeaders(),
+                    credentials: "include"
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    setUser(data.user);
+                    localStorage.setItem("tabsystem_user", JSON.stringify(data.user));
+                } else {
+                    // Si el servidor dice que no hay sesión, limpiamos local
+                    setUser(null);
+                    localStorage.removeItem("tabsystem_user");
+                }
+            } catch (err) {
+                console.error("Error checking session", err);
+                // Si hay error de red, confiamos en lo que tengamos en local temporalmente
                 const storedUser = localStorage.getItem("tabsystem_user");
                 if (storedUser) {
                     setUser(JSON.parse(storedUser));
                 }
-            } catch (err) {
-                console.error("Error checking session", err);
             } finally {
                 setIsLoading(false);
             }

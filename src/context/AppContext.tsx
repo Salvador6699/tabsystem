@@ -86,7 +86,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
   const [storageConfig, setStorageConfig] = useState<StorageConfig>(() =>
     getFromStorage("storageConfig", { type: "local" })
   );
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -108,6 +108,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
 
   // ─── CARGA DE DATOS POR USUARIO ──────────────────────────────────────────────
   useEffect(() => {
+    if (authLoading) return; // Esperar a que AuthContext verifique la sesión
+
     if (isAuthenticated && user) {
       setWorkEntries(getFromStorage(getUserKey("workEntries"), []));
       setBrickTypes(getFromStorage(getUserKey("brickTypes"), DEFAULT_BRICK_TYPES));
@@ -115,8 +117,8 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setMultipliers(getFromStorage(getUserKey("multipliers"), []));
       setSupplements(getFromStorage(getUserKey("supplements"), []));
       setGlobalMeasurements(getFromStorage(getUserKey("globalMeasurements"), []));
-    } else if (!isAuthenticated) {
-      // Resetear estados si no hay sesión
+    } else {
+      // Solo resetear si de verdad no hay sesión (y no está cargando)
       setWorkEntries([]);
       setBrickTypes(DEFAULT_BRICK_TYPES);
       setPeriods([]);
@@ -124,7 +126,7 @@ export const AppProvider = ({ children }: { children: React.ReactNode }) => {
       setSupplements([]);
       setGlobalMeasurements([]);
     }
-  }, [isAuthenticated, user, getUserKey]);
+  }, [isAuthenticated, user, authLoading, getUserKey]);
 
   // ─── PERSISTENCIA LOCAL AUTOMÁTICA ───────────────────────────────────────────
   useEffect(() => {
