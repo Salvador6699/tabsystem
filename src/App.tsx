@@ -50,7 +50,7 @@ export default function App() {
     syncFromDatabase,
   } = useAppContext();
 
-  const { isAuthenticated, isLoading: authLoading, logout } = useAuth();
+  const { isAuthenticated, user, isLoading: authLoading, logout } = useAuth();
   const [authView, setAuthView] = useState<"login" | "register">("login");
 
   const [currentView, setCurrentView] = useState<View>("dashboard");
@@ -90,7 +90,7 @@ export default function App() {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background text-center p-6">
         <div className="space-y-4">
-          <Blocks className="w-12 h-12 text-primary animate-pulse mx-auto" />
+          <img src="/logo.png" alt="TabSystem Logo" className="w-20 h-20 mx-auto animate-pulse" />
           <p className="text-muted-foreground animate-pulse font-medium">
             {isInitializing ? "Comprobando y sincronizando datos..." : "Cargando TabSystem..."}
           </p>
@@ -112,9 +112,12 @@ export default function App() {
       <nav className="hidden md:block bg-card shadow-sm border-b border-border sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-2">
-              <Blocks className="w-6 h-6 text-primary" />
-              <h1 className="text-xl font-bold text-foreground">TabSystem</h1>
+            <div className="flex items-center gap-3">
+              <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg" />
+              <div className="flex flex-col">
+                <h1 className="text-lg font-bold text-foreground leading-none">TabSystem</h1>
+                <span className="text-[10px] text-primary font-medium uppercase tracking-wider">{user?.username}</span>
+              </div>
             </div>
             <div className="flex items-center space-x-1">
               <DarkModeToggle isDark={isDark} toggle={toggleDark} />
@@ -158,9 +161,12 @@ export default function App() {
       {/* Mobile header */}
       <header className="md:hidden sticky top-0 bg-background/95 backdrop-blur-sm z-30 border-b border-border">
         <div className="flex justify-between items-center h-16 px-4">
-          <div className="flex items-center gap-2">
-            <Blocks className="w-6 h-6 text-primary" />
-            <h1 className="text-xl font-bold text-foreground">TabSystem</h1>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 rounded-lg" />
+            <div className="flex flex-col">
+              <h1 className="text-lg font-bold text-foreground leading-none">TabSystem</h1>
+              <span className="text-[10px] text-primary font-medium uppercase tracking-wider">{user?.username}</span>
+            </div>
           </div>
           <div className="flex items-center gap-1">
             <DarkModeToggle isDark={isDark} toggle={toggleDark} />

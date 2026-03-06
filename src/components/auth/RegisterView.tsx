@@ -9,6 +9,7 @@ interface RegisterViewProps {
 
 export const RegisterView: React.FC<RegisterViewProps> = ({ onSwitchToLogin }) => {
     const { register } = useAuth();
+    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -20,7 +21,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onSwitchToLogin }) =
         setIsLoading(true);
         setError(null);
         try {
-            await register(email, password);
+            await register(email, password, username);
             setSuccess(true);
         } catch (err: any) {
             setError(err.message || "Error al registrarse");
@@ -60,6 +61,21 @@ export const RegisterView: React.FC<RegisterViewProps> = ({ onSwitchToLogin }) =
                         {error}
                     </div>
                 )}
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Usuario</label>
+                    <div className="relative">
+                        <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <input
+                            type="text"
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            required
+                            className="w-full pl-10 pr-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                            placeholder="Tu nombre de usuario"
+                        />
+                    </div>
+                </div>
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-foreground">Email</label>

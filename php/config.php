@@ -23,11 +23,13 @@ session_start([
 
 /*  // Configuración local opcional (XAMPP) define('DB_HOST', 'localhost'); define('DB_NAME', 'tabsystem'); define('DB_USER', 'ganbaru'); define('DB_PASS', 'Ganbaru@6699'); define('DB_CHARSET', 'utf8mb4'); */
 
-// Cabeceras CORS y JSON
-header('Access-Control-Allow-Origin: http://localhost:5173'); // Ajustar a tu dominio de producción si es necesario
+// Cabeceras CORS y JSON dinámicas
+if (isset($_SERVER['HTTP_ORIGIN'])) {
+    header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
+    header('Access-Control-Allow-Credentials: true');
+}
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
-header('Access-Control-Allow-Credentials: true');
 header('Content-Type: application/json; charset=utf-8');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

@@ -35,36 +35,73 @@ try {
     $pdo->prepare("DELETE FROM brick_types WHERE user_id = ?")->execute([$userId]);
     $pdo->prepare("DELETE FROM supplements WHERE user_id = ?")->execute([$userId]);
 
-    // 2. Insertar Ladrillos
+    // 2. Filtrar duplicados por ID antes de insertar
+    $uniqueBrickTypes = [];
     if (!empty($body['brickTypes'])) {
+        foreach ($body['brickTypes'] as $bt)
+            $uniqueBrickTypes[$bt['id']] = $bt;
+    }
+
+    $uniquePeriods = [];
+    if (!empty($body['periods'])) {
+        foreach ($body['periods'] as $p)
+            $uniquePeriods[$p['id']] = $p;
+    }
+
+    $uniqueMultipliers = [];
+    if (!empty($body['multipliers'])) {
+        foreach ($body['multipliers'] as $m)
+            $uniqueMultipliers[$m['id']] = $m;
+    }
+
+    $uniqueWorkEntries = [];
+    if (!empty($body['workEntries'])) {
+        foreach ($body['workEntries'] as $e)
+            $uniqueWorkEntries[$e['id']] = $e;
+    }
+
+    $uniqueGlobalMeasurements = [];
+    if (!empty($body['globalMeasurements'])) {
+        foreach ($body['globalMeasurements'] as $gm)
+            $uniqueGlobalMeasurements[$gm['id']] = $gm;
+    }
+
+    $uniqueSupplements = [];
+    if (!empty($body['supplements'])) {
+        foreach ($body['supplements'] as $s)
+            $uniqueSupplements[$s['id']] = $s;
+    }
+
+    // 2. Insertar Ladrillos
+    if (!empty($uniqueBrickTypes)) {
         $stmt = $pdo->prepare("INSERT INTO brick_types (id, name, price_per_square_meter, type, user_id) VALUES (?, ?, ?, ?, ?)");
-        foreach ($body['brickTypes'] as $b) {
+        foreach ($uniqueBrickTypes as $b) {
             $stmt->execute([$b['id'], $b['name'], $b['pricePerSquareMeter'], $b['type'], $userId]);
         }
     }
 
     // 3. Insertar Períodos
-    if (!empty($body['periods'])) {
+    if (!empty($uniquePeriods)) {
         $stmt = $pdo->prepare("INSERT INTO periods (id, name, start_date, end_date, user_id) VALUES (?, ?, ?, ?, ?)");
-        foreach ($body['periods'] as $p) {
+        foreach ($uniquePeriods as $p) {
             $stmt->execute([$p['id'], $p['name'], $p['startDate'], $p['endDate'] ?? null, $userId]);
         }
     }
 
     // 4. Insertar Multiplicadores
-    if (!empty($body['multipliers'])) {
+    if (!empty($uniqueMultipliers)) {
         $stmt = $pdo->prepare("INSERT INTO multipliers (id, name, value, description, user_id) VALUES (?, ?, ?, ?, ?)");
-        foreach ($body['multipliers'] as $m) {
+        foreach ($uniqueMultipliers as $m) {
             $stmt->execute([$m['id'], $m['name'], $m['value'], $m['description'] ?? null, $userId]);
         }
     }
 
     // 5. Insertar Trabajos
-    if (!empty($body['workEntries'])) {
+    if (!empty($uniqueWorkEntries)) {
         $stmt = $pdo->prepare("INSERT INTO work_entries 
             (id, date, brick_type_id, supplement_ids, linear_meters, height, square_meters, quantity, price_per_unit, description, base_earnings, supplement_earnings, total_earnings, period_id, user_id) 
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-        foreach ($body['workEntries'] as $e) {
+        foreach ($uniqueWorkEntries as $e) {
             $stmt->execute([
                 $e['id'], $e['date'], $e['brickTypeId'],
                 isset($e['supplementIds']) ? json_encode($e['supplementIds']) : null,
@@ -77,11 +114,11 @@ try {
     }
 
     // 6. Insertar Mediciones Globales
-    if (!empty($body['globalMeasurements'])) {
+    if (!empty($uniqueGlobalMeasurements)) {
         $stmtGm = $pdo->prepare("INSERT INTO global_measurements (id, period_id, description, created_at, user_id) VALUES (?, ?, ?, ?, ?)");
         $stmtRec = $pdo->prepare("INSERT INTO global_measurement_records (measurement_id, brick_type_id, square_meters, earnings) VALUES (?, ?, ?, ?)");
 
-        foreach ($body['globalMeasurements'] as $gm) {
+        foreach ($uniqueGlobalMeasurements as $gm) {
             $stmtGm->execute([$gm['id'], $gm['periodId'], $gm['description'] ?? null, $gm['createdAt'], $userId]);
             foreach ($gm['records'] as $rec) {
                 $stmtRec->execute([$gm['id'], $rec['brickTypeId'], $rec['squareMeters'], $rec['earnings']]);
@@ -90,9 +127,9 @@ try {
     }
 
     // 7. Insertar Suplementos
-    if (!empty($body['supplements'])) {
+    if (!empty($uniqueSupplements)) {
         $stmt = $pdo->prepare("INSERT INTO supplements (id, name, price, user_id) VALUES (?, ?, ?, ?)");
-        foreach ($body['supplements'] as $s) {
+        foreach ($uniqueSupplements as $s) {
             $stmt->execute([$s['id'], $s['name'], $s['price'], $userId]);
         }
     }

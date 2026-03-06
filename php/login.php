@@ -21,7 +21,7 @@ if (empty($email) || empty($password)) {
 $pdo = getConnection();
 
 try {
-    $stmt = $pdo->prepare("SELECT id, email, password_hash, is_verified FROM users WHERE email = ?");
+    $stmt = $pdo->prepare("SELECT id, username, email, password_hash, is_verified FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
@@ -32,12 +32,14 @@ try {
     // Iniciar sesión
     $_SESSION['user_id'] = $user['id'];
     $_SESSION['user_email'] = $user['email'];
+    $_SESSION['user_username'] = $user['username'];
 
     jsonResponse([
         'success' => true,
         'user' => [
             'id' => $user['id'],
-            'email' => $user['email']
+            'email' => $user['email'],
+            'username' => $user['username']
         ]
     ]);
 

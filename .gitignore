@@ -32,3 +32,6 @@ php/config.php
 # OS
 .DS_Store
 Thumbs.db
+
+# User files
+archivos/

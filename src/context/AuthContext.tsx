@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 type User = {
     id: number;
     email: string;
+    username: string;
 };
 
 type AuthContextType = {
@@ -10,7 +11,7 @@ type AuthContextType = {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string) => Promise<void>;
-    register: (email: string, password: string) => Promise<{ message: string }>;
+    register: (email: string, password: string, username: string) => Promise<{ message: string }>;
     logout: () => Promise<void>;
 };
 
@@ -22,14 +23,23 @@ export const useAuth = () => {
     return ctx;
 };
 
-const isLocal = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
-const AUTH_CREDENTIALS = "plantr753:zGTk9J8N";
-const AUTH_URL = `http://${AUTH_CREDENTIALS}@www.plantrabajo.com.mialias.net/`;
+const isLocal = window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname.startsWith("192.168.") ||
+    window.location.hostname.startsWith("10.") ||
+    window.location.hostname.endsWith(".local");
 
-// URL limpia sin credenciales
+const AUTH_CREDENTIALS = "plantr753:zGTk9J8N";
+const AUTH_URL = `${window.location.protocol}//${AUTH_CREDENTIALS}@www.plantrabajo.com.mialias.net/`;
+
+// Detectar ruta del proyecto dinamícamente
+const pathParts = window.location.pathname.split('/');
+const projectPath = pathParts.slice(0, pathParts.length - 2).join('/');
+
+// URL limpia sin credenciales. Usamos el protocolo actual.
 const API_BASE = isLocal
-    ? `${window.location.origin}/php`
-    : `http://www.plantrabajo.com.mialias.net/php`;
+    ? `${window.location.origin.replace(":5173", "")}${projectPath}/php`
+    : `${window.location.protocol}//www.plantrabajo.com.mialias.net/php`;
 
 // Generar cabeceras de autenticación básica para CDMon
 const getAuthHeaders = (): Record<string, string> => {
@@ -90,14 +100,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem("tabsystem_user", JSON.stringify(data.user));
     };
 
-    const register = async (email: string, password: string) => {
+    const register = async (email: string, password: string, username: string) => {
         const res = await fetch(`${API_BASE}/register.php`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 ...getAuthHeaders()
             },
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password, username }),
             credentials: "include",
         });
         const data = await res.json();

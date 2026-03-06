@@ -13,9 +13,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $body = json_decode(file_get_contents('php://input'), true);
 $email = filter_var($body['email'] ?? '', FILTER_VALIDATE_EMAIL);
 $password = $body['password'] ?? '';
+$username = trim($body['username'] ?? '');
 
-if (!$email || strlen($password) < 6) {
-    jsonResponse(['error' => 'Email inválido o contraseña demasiado corta (mínimo 6 caracteres)'], 400);
+if (!$email || strlen($password) < 6 || empty($username)) {
+    jsonResponse(['error' => 'Email, contraseña (mín. 6) y nombre de usuario son requeridos'], 400);
 }
 
 $pdo = getConnection();
@@ -31,8 +32,8 @@ $passwordHash = password_hash($password, PASSWORD_BCRYPT);
 
 try {
     // Marcamos como verificado directamente (is_verified = 1)
-    $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, is_verified) VALUES (?, ?, 1)");
-    $stmt->execute([$email, $passwordHash]);
+    $stmt = $pdo->prepare("INSERT INTO users (username, email, password_hash, is_verified) VALUES (?, ?, ?, 1)");
+    $stmt->execute([$username, $email, $passwordHash]);
 
     jsonResponse([
         'success' => true,

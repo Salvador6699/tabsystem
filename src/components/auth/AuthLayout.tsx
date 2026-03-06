@@ -12,8 +12,8 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ children, title, subtitl
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <div className="w-full max-w-md">
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center p-3 bg-primary/10 rounded-2xl mb-4">
-                        <Lock className="w-8 h-8 text-primary" />
+                    <div className="mb-6">
+                        <img src="/logo.png" alt="TabSystem Logo" className="w-24 h-24 mx-auto rounded-3xl shadow-sm" />
                     </div>
                     <h1 className="text-2xl font-bold text-foreground">{title}</h1>
                     {subtitle && <p className="text-muted-foreground mt-2">{subtitle}</p>}
